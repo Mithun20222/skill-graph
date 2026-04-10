@@ -1,591 +1,1089 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Skill Graph Explorer</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;background:#fff;font-family:'Inter',sans-serif;color:#111;overflow:hidden}
-#app{display:flex;flex-direction:column;height:100vh}
-
-header{
-  padding:14px 22px 12px;
-  border-bottom:1px solid rgba(0,0,0,0.07);
-  display:flex;align-items:center;gap:12px;flex-shrink:0;
-}
-.logo{font-size:13.5px;font-weight:600;letter-spacing:-0.04em;display:flex;align-items:center;gap:7px;white-space:nowrap}
-
-/* Back button */
-#back-btn{
-  display:none;align-items:center;gap:6px;
-  font-size:12px;color:#888;cursor:pointer;
-  padding:5px 10px;border-radius:99px;
-  border:1px solid rgba(0,0,0,0.1);
-  background:#fff;transition:all 0.15s;
-  font-family:'JetBrains Mono',monospace;
-  white-space:nowrap;flex-shrink:0;
-}
-#back-btn:hover{background:#f5f5f3;color:#333;border-color:rgba(0,0,0,0.2)}
-#back-btn svg{transition:transform 0.15s}
-#back-btn:hover svg{transform:translateX(-2px)}
-
-.search-wrap{flex:1;max-width:400px;position:relative}
-.search-wrap input{
-  width:100%;padding:8px 16px 8px 36px;
-  border:1px solid rgba(0,0,0,0.1);border-radius:99px;
-  font-family:'Inter',sans-serif;font-size:13px;
-  background:#f7f7f5;outline:none;color:#111;transition:all 0.15s;
-}
-.search-wrap input:focus{border-color:rgba(0,0,0,0.22);background:#fff;box-shadow:0 0 0 3px rgba(0,0,0,0.04)}
-.search-wrap input::placeholder{color:#bbb}
-.sico{position:absolute;left:12px;top:50%;transform:translateY(-50%);opacity:0.25;pointer-events:none}
-
-.qtags{display:flex;gap:5px;flex-wrap:wrap;overflow:hidden;max-height:28px}
-.qtag{
-  font-size:10px;padding:3px 9px;border-radius:99px;
-  border:1px solid rgba(0,0,0,0.09);cursor:pointer;color:#777;
-  background:#fff;font-family:'JetBrains Mono',monospace;
-  transition:all 0.12s;white-space:nowrap;
-}
-.qtag:hover{background:#111;color:#fff;border-color:#111}
-
-main{flex:1;display:grid;grid-template-columns:1fr 290px;overflow:hidden;min-height:0}
-
-#ca{position:relative;overflow:hidden}
-canvas{position:absolute;top:0;left:0;cursor:default}
-
-#idle-hint{
-  position:absolute;bottom:20px;left:50%;transform:translateX(-50%);
-  font-size:10.5px;color:#ccc;font-family:'JetBrains Mono',monospace;
-  letter-spacing:0.04em;pointer-events:none;transition:opacity 0.5s;white-space:nowrap;
-}
-
-/* Spinning loader overlay */
-#loading-overlay{
-  position:absolute;inset:0;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:12px;
-  background:#fff;z-index:10;transition:opacity 0.4s;
-}
-#loading-overlay p{font-size:11px;color:#bbb;font-family:'JetBrains Mono',monospace}
-.spinner{width:24px;height:24px;border:2px solid rgba(0,0,0,0.07);border-top-color:#111;border-radius:50%;animation:spin 0.7s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-
-
-#panel{border-left:1px solid rgba(0,0,0,0.07);overflow-y:auto;display:flex;flex-direction:column}
-#pe{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:28px}
-#pe p{font-size:12px;color:#ccc;text-align:center;line-height:1.7;max-width:150px}
-#pc{display:none;padding:18px 15px;flex-direction:column}
-
-.sname{font-size:19px;font-weight:600;letter-spacing:-0.04em;margin-bottom:1px}
-.scat{font-size:10px;font-family:'JetBrains Mono',monospace;color:#bbb;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px}
-.chips{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:15px}
-.chip{font-size:10px;padding:2px 8px;border-radius:99px;cursor:pointer;font-family:'JetBrains Mono',monospace;border:1px solid;transition:opacity 0.1s}
-.chip:hover{opacity:0.6}
-.div{height:1px;background:rgba(0,0,0,0.06);margin:11px 0}
-.sl{font-size:9.5px;font-family:'JetBrains Mono',monospace;color:#bbb;text-transform:uppercase;letter-spacing:0.09em;margin-bottom:5px}
-.sb{font-size:12px;color:#555;line-height:1.68;margin-bottom:11px}
-.sli{list-style:none;margin-bottom:11px}
-.sli li{font-size:12px;color:#555;line-height:1.65;padding-left:12px;position:relative}
-.sli li::before{content:'–';position:absolute;left:0;color:#ddd}
-
-#err-banner{display:none;background:#fff5f5;border-bottom:1px solid #fecaca;padding:7px 22px;font-size:11px;color:#dc2626;font-family:'JetBrains Mono',monospace;flex-shrink:0}
-
-footer{border-top:1px solid rgba(0,0,0,0.06);padding:7px 22px;display:flex;align-items:center;gap:10px;flex-shrink:0}
-#nc{font-size:10px;color:#ccc;font-family:'JetBrains Mono',monospace}
-.legend{display:flex;gap:12px;margin-left:auto}
-.li{display:flex;align-items:center;gap:4px;font-size:10px;color:#bbb}
-.ld{width:6px;height:6px;border-radius:50%}
-</style>
-</head>
-<body>
-<div id="app">
-  <div id="err-banner"></div>
-  <header>
-    <div class="logo">
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-        <circle cx="7" cy="7" r="2.6" fill="#111"/>
-        <circle cx="1.6" cy="3.2" r="1.3" fill="#111" opacity=".3"/>
-        <circle cx="12.4" cy="3.2" r="1.3" fill="#111" opacity=".3"/>
-        <circle cx="1.6" cy="10.8" r="1.3" fill="#111" opacity=".3"/>
-        <circle cx="12.4" cy="10.8" r="1.3" fill="#111" opacity=".3"/>
-        <line x1="4.2" y1="5.4" x2="2.9" y2="4.4" stroke="#111" stroke-width="0.8" opacity=".2"/>
-        <line x1="9.8" y1="5.4" x2="11.1" y2="4.4" stroke="#111" stroke-width="0.8" opacity=".2"/>
-        <line x1="4.2" y1="8.6" x2="2.9" y2="9.6" stroke="#111" stroke-width="0.8" opacity=".2"/>
-        <line x1="9.8" y1="8.6" x2="11.1" y2="9.6" stroke="#111" stroke-width="0.8" opacity=".2"/>
-      </svg>
-      skill graph
-    </div>
-
-    <div id="back-btn" onclick="resetToSphere()">
-      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-        <path d="M7.5 2L3.5 6L7.5 10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      sphere
-    </div>
-
-    <div class="search-wrap">
-      <svg class="sico" width="13" height="13" viewBox="0 0 13 13" fill="none">
-        <circle cx="5.5" cy="5.5" r="4" stroke="#111" stroke-width="1.3"/>
-        <path d="M9 9L11.5 11.5" stroke="#111" stroke-width="1.3" stroke-linecap="round"/>
-      </svg>
-      <input id="search-inp" type="text" placeholder="Search — React, Python, Docker…" autocomplete="off"/>
-    </div>
-    <div class="qtags" id="qt"></div>
-  </header>
-
-  <main>
-    <div id="ca">
-      <canvas id="c"></canvas>
-      <div id="loading-overlay">
-        <div class="spinner"></div>
-        <p>connecting to neo4j…</p>
-      </div>
-      <div id="idle-hint">rotate to explore · click any node to focus</div>
-
-    </div>
-    <div id="panel">
-      <div id="pe">
-        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-          <circle cx="16" cy="16" r="6" stroke="#e8e8e8" stroke-width="1.5"/>
-          <circle cx="4.5" cy="8" r="2.5" stroke="#e8e8e8" stroke-width="1.2"/>
-          <circle cx="27.5" cy="8" r="2.5" stroke="#e8e8e8" stroke-width="1.2"/>
-          <circle cx="4.5" cy="24" r="2.5" stroke="#e8e8e8" stroke-width="1.2"/>
-          <circle cx="27.5" cy="24" r="2.5" stroke="#e8e8e8" stroke-width="1.2"/>
-          <line x1="10" y1="12.5" x2="7" y2="10.3" stroke="#e8e8e8" stroke-width="1"/>
-          <line x1="22" y1="12.5" x2="25" y2="10.3" stroke="#e8e8e8" stroke-width="1"/>
-          <line x1="10" y1="19.5" x2="7" y2="21.7" stroke="#e8e8e8" stroke-width="1"/>
-          <line x1="22" y1="19.5" x2="25" y2="21.7" stroke="#e8e8e8" stroke-width="1"/>
-        </svg>
-        <p>Click any node on the sphere to explore its connections</p>
-      </div>
-      <div id="pc"></div>
-    </div>
-  </main>
-
-  <footer>
-    <span id="nc">loading…</span>
-    <div class="legend">
-      <div class="li"><div class="ld" style="background:#6C63FF"></div>frontend</div>
-      <div class="li"><div class="ld" style="background:#10B981"></div>backend</div>
-      <div class="li"><div class="ld" style="background:#F59E0B"></div>data</div>
-      <div class="li"><div class="ld" style="background:#3B82F6"></div>tools</div>
-    </div>
-  </footer>
-</div>
-
-<script>
-const API = 'http://localhost:3000'
-const CATS = { frontend:'#6C63FF', backend:'#10B981', data:'#F59E0B', tools:'#3B82F6' }
-const QUICK = ['React','Python','Node.js','Docker','TypeScript','GraphQL','PostgreSQL','AWS']
-let SK = {}
-
-let canvas, ctx, W=0, H=0
-let mode = 'sphere'
-let focused = null
-
-// Sphere
-let sphereNodes=[], sphereRot=0, sphereRafId=null
-
-
-// Graph
-let gNodes=[], gEdges=[], gAnim=0, gRafId=null
-
-const lerp = (a,b,t) => a+(b-a)*t
-const easeOut = t => 1-Math.pow(1-t,4)
-const easeInOut = t => t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2
-
-// ── NODE RADIUS based on text length ─────────────────────
-function nodeRadius(name, isMain=false) {
-  if (isMain) return 38
-  // Measure text roughly: longer names get bigger circles
-  const len = name.length
-  if (len <= 3)  return 20
-  if (len <= 5)  return 22
-  if (len <= 8)  return 24
-  if (len <= 11) return 27
-  if (len <= 14) return 30
-  return 33
-}
-
-// ── API ───────────────────────────────────────────────────
-function showError(msg) {
-  const b = document.getElementById('err-banner')
-  b.textContent = '⚠ ' + msg
-  b.style.display = 'block'
-}
-
-async function fetchAllSkills() {
-  try {
-    const res = await fetch(`${API}/skills`)
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const skills = await res.json()
-    skills.forEach(s => {
-      if (!SK[s.name]) SK[s.name] = { cat:s.category, color:s.color, conn:[], why:'', created:'', build:[], learn:[] }
-    })
-    document.getElementById('nc').textContent = skills.length + ' skills'
-    return true
-  } catch(e) {
-    showError('Cannot reach backend at ' + API + ' — make sure "node src/index.js" is running')
-    document.getElementById('nc').textContent = 'offline'
-    return false
-  }
-}
-
-async function fetchSkill(name) {
-  if (SK[name] && SK[name].conn.length > 0) return SK[name]
-  try {
-    const res = await fetch(`${API}/skills/${encodeURIComponent(name)}`)
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const data = await res.json()
-    SK[name] = {
-      cat: data.center.category, color: data.center.color,
-      conn: data.connections.map(c => c.skill.name),
-      why: data.center.why || '', created: data.center.created || '',
-      build: data.center.build || [], learn: data.center.learn || [],
-    }
-    data.connections.forEach(c => {
-      if (!SK[c.skill.name]) SK[c.skill.name] = { cat:c.skill.category, color:c.skill.color, conn:[], why:'', created:'', build:[], learn:[] }
-    })
-    return SK[name]
-  } catch(e) {
-    showError('Failed to load: ' + name); return null
-  }
-}
-
-// ── INIT ──────────────────────────────────────────────────
-async function init() {
-  const ok = await fetchAllSkills()
-  const overlay = document.getElementById('loading-overlay')
-  overlay.style.opacity = '0'
-  setTimeout(() => overlay.style.display='none', 400)
-  if (!ok) return
-
-  const qt = document.getElementById('qt')
-  QUICK.forEach(q => {
-    const b = document.createElement('span')
-    b.className='qtag'; b.textContent=q
-    b.onclick = () => { document.getElementById('search-inp').value=q; focusSkill(q) }
-    qt.appendChild(b)
-  })
-
-  const inp = document.getElementById('search-inp')
-  inp.addEventListener('keydown', e => {
-    if (e.key==='Enter') { const m=findSkill(inp.value.trim()); if(m) focusSkill(m) }
-  })
-  inp.addEventListener('input', () => { if(!inp.value.trim()) resetToSphere() })
-
-  canvas.addEventListener('click', onClick)
-  canvas.addEventListener('mousemove', onMove)
-  window.addEventListener('resize', () => {
-    doResize()
-    if (mode==='sphere') buildSphereNodes()
-    else if (focused) buildGraph(focused, true)
-  })
-
-  buildSphereNodes()
-  startSphere()
-}
-
-function doResize() {
-  const a = document.getElementById('ca')
-  W=a.clientWidth; H=a.clientHeight
-  canvas.width=W*devicePixelRatio; canvas.height=H*devicePixelRatio
-  canvas.style.width=W+'px'; canvas.style.height=H+'px'
-  if (ctx) {
-    ctx.setTransform(1,0,0,1,0,0)
-    ctx.scale(devicePixelRatio,devicePixelRatio)
-  }
-}
-
-function findSkill(q) {
-  if (!q) return null; q=q.toLowerCase()
-  return Object.keys(SK).find(k=>k.toLowerCase()===q) ||
-         Object.keys(SK).find(k=>k.toLowerCase().startsWith(q)) ||
-         Object.keys(SK).find(k=>k.toLowerCase().includes(q))
-}
-
-// ── SPHERE ────────────────────────────────────────────────
-function buildSphereNodes() {
-  const keys=Object.keys(SK), n=keys.length
-  sphereNodes = keys.map((name,i) => {
-    const phi   = Math.acos(1-2*(i+0.5)/n)
-    const theta = Math.PI*(1+Math.sqrt(5))*i
-    return { name, phi, theta, x:0, y:0, z:0, hovered:false }
-  })
-}
-
-function projectNode(nd, rotY) {
-  const R=Math.min(W,H)*0.33, tilt=0.3
-  const sx = Math.sin(nd.phi)*Math.cos(nd.theta+rotY)
-  const sy = Math.cos(nd.phi)
-  const sz = Math.sin(nd.phi)*Math.sin(nd.theta+rotY)
-  nd.x = W/2 + sx*R
-  nd.y = H/2 + (sy*Math.cos(tilt)-sz*Math.sin(tilt))*R
-  nd.z = (sy*Math.sin(tilt)+sz*Math.cos(tilt))*R
-}
-
-function startSphere() {
-  cancelAnimationFrame(gRafId)
-  loopSphere()
-}
-
-function loopSphere() {
-  sphereRot += 0.0022
-
-  ctx.clearRect(0,0,W,H)
-  drawDotGrid()
-  sphereNodes.forEach(nd => projectNode(nd, sphereRot))
-  const sorted = [...sphereNodes].sort((a,b)=>a.z-b.z)
-  const R = Math.min(W,H)*0.33
-
-  // Draw edges between nearby nodes
-  for (let i=0; i<sorted.length; i++) {
-    for (let j=i+1; j<sorted.length; j++) {
-      const a=sorted[i], b=sorted[j]
-      const d = Math.hypot(a.x-b.x, a.y-b.y, a.z-b.z)
-      if (d < R*0.68) {
-        const alpha = (1-d/(R*0.68))*0.13*((a.z+b.z)/(2*R)+1)/2
-        ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y)
-        ctx.strokeStyle = `rgba(0,0,0,${Math.max(0,alpha)})`
-        ctx.lineWidth=0.5; ctx.stroke()
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Skill Graph Explorer</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
       }
-    }
-  }
-
-  // Draw nodes
-  sorted.forEach(nd => {
-    const depth = (nd.z/R+1)/2
-    const col = SK[nd.name]?.color || '#888'
-    // Radius based on name length, scaled by depth
-    const baseR = nodeRadius(nd.name)
-    const r = baseR*(0.4+depth*0.7) + (nd.hovered?3:0)
-    const alpha = 0.2+depth*0.8
-
-    ctx.globalAlpha = alpha
-
-    // Node circle
-    ctx.beginPath(); ctx.arc(nd.x,nd.y,r,0,Math.PI*2)
-    ctx.fillStyle='#fff'; ctx.fill()
-    ctx.strokeStyle=col; ctx.lineWidth=depth>0.5?1.8:0.8; ctx.stroke()
-
-    // Text inside — only when facing front enough
-    if (depth > 0.35) {
-      const name = nd.name
-      const fs = Math.max(7, Math.min(11, (r*1.3)/Math.max(name.length*0.55,1)))
-      ctx.font = `500 ${fs}px 'Inter',sans-serif`
-      ctx.textAlign='center'; ctx.textBaseline='middle'
-      ctx.fillStyle = col
-
-      // Split into lines if needed
-      const words = name.split(/[\s\/]/)
-      if (words.length === 1) {
-        ctx.fillText(name, nd.x, nd.y)
-      } else {
-        const lh = fs + 1.5
-        words.forEach((w,i) => ctx.fillText(w, nd.x, nd.y+(i-(words.length-1)/2)*lh))
+      html,
+      body {
+        height: 100%;
+        background: #fff;
+        font-family: "Inter", sans-serif;
+        color: #111;
+        overflow: hidden;
       }
-    }
-    ctx.globalAlpha=1
-  })
+      #app {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+      }
 
-  sphereRafId = requestAnimationFrame(loopSphere)
-}
+      header {
+        padding: 14px 22px 12px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-shrink: 0;
+      }
+      .logo {
+        font-size: 13.5px;
+        font-weight: 600;
+        letter-spacing: -0.04em;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        white-space: nowrap;
+      }
 
-// ── FOCUS SKILL ───────────────────────────────────────────
-async function focusSkill(name) {
-  if (!SK[name]) return
-  cancelAnimationFrame(sphereRafId)
-  focused=name; mode='focused'
-  document.getElementById('idle-hint').style.opacity='0'
-  document.getElementById('back-btn').style.display='flex'
-  document.getElementById('pe').style.display='none'
-  document.getElementById('pc').style.display='flex'
-  document.getElementById('pc').innerHTML=`
+      #back-btn {
+        display: none;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: #888;
+        cursor: pointer;
+        padding: 5px 10px;
+        border-radius: 99px;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        background: #fff;
+        transition: all 0.15s;
+        font-family: "JetBrains Mono", monospace;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      #back-btn:hover {
+        background: #f5f5f3;
+        color: #333;
+        border-color: rgba(0, 0, 0, 0.2);
+      }
+      #back-btn svg {
+        transition: transform 0.15s;
+      }
+      #back-btn:hover svg {
+        transform: translateX(-2px);
+      }
+
+      .search-wrap {
+        flex: 1;
+        max-width: 400px;
+        position: relative;
+      }
+      .search-wrap input {
+        width: 100%;
+        padding: 8px 16px 8px 36px;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        border-radius: 99px;
+        font-family: "Inter", sans-serif;
+        font-size: 13px;
+        background: #f7f7f5;
+        outline: none;
+        color: #111;
+        transition: all 0.15s;
+      }
+      .search-wrap input:focus {
+        border-color: rgba(0, 0, 0, 0.22);
+        background: #fff;
+        box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.04);
+      }
+      .search-wrap input::placeholder {
+        color: #bbb;
+      }
+      .sico {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        opacity: 0.25;
+        pointer-events: none;
+      }
+
+      .qtags {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+        overflow: hidden;
+        max-height: 28px;
+      }
+      .qtag {
+        font-size: 10px;
+        padding: 3px 9px;
+        border-radius: 99px;
+        border: 1px solid rgba(0, 0, 0, 0.09);
+        cursor: pointer;
+        color: #777;
+        background: #fff;
+        font-family: "JetBrains Mono", monospace;
+        transition: all 0.12s;
+        white-space: nowrap;
+      }
+      .qtag:hover {
+        background: #111;
+        color: #fff;
+        border-color: #111;
+      }
+
+      main {
+        flex: 1;
+        display: grid;
+        grid-template-columns: 1fr 290px;
+        overflow: hidden;
+        min-height: 0;
+      }
+
+      #ca {
+        position: relative;
+        overflow: hidden;
+      }
+      canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        cursor: default;
+      }
+
+      #idle-hint {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 10.5px;
+        color: #ccc;
+        font-family: "JetBrains Mono", monospace;
+        letter-spacing: 0.04em;
+        pointer-events: none;
+        transition: opacity 0.5s;
+        white-space: nowrap;
+      }
+
+      #loading-overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        background: #fff;
+        z-index: 10;
+        transition: opacity 0.4s;
+      }
+      #loading-overlay p {
+        font-size: 11px;
+        color: #bbb;
+        font-family: "JetBrains Mono", monospace;
+      }
+      .spinner {
+        width: 24px;
+        height: 24px;
+        border: 2px solid rgba(0, 0, 0, 0.07);
+        border-top-color: #111;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      #panel {
+        border-left: 1px solid rgba(0, 0, 0, 0.07);
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+      }
+      #pe {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 28px;
+      }
+      #pe p {
+        font-size: 12px;
+        color: #ccc;
+        text-align: center;
+        line-height: 1.7;
+        max-width: 150px;
+      }
+      #pc {
+        display: none;
+        padding: 18px 15px;
+        flex-direction: column;
+      }
+
+      .sname {
+        font-size: 19px;
+        font-weight: 600;
+        letter-spacing: -0.04em;
+        margin-bottom: 1px;
+      }
+      .scat {
+        font-size: 10px;
+        font-family: "JetBrains Mono", monospace;
+        color: #bbb;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 12px;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-bottom: 15px;
+      }
+      .chip {
+        font-size: 10px;
+        padding: 2px 8px;
+        border-radius: 99px;
+        cursor: pointer;
+        font-family: "JetBrains Mono", monospace;
+        border: 1px solid;
+        transition: opacity 0.1s;
+      }
+      .chip:hover {
+        opacity: 0.6;
+      }
+      .div {
+        height: 1px;
+        background: rgba(0, 0, 0, 0.06);
+        margin: 11px 0;
+      }
+      .sl {
+        font-size: 9.5px;
+        font-family: "JetBrains Mono", monospace;
+        color: #bbb;
+        text-transform: uppercase;
+        letter-spacing: 0.09em;
+        margin-bottom: 5px;
+      }
+      .sb {
+        font-size: 12px;
+        color: #555;
+        line-height: 1.68;
+        margin-bottom: 11px;
+      }
+      .sli {
+        list-style: none;
+        margin-bottom: 11px;
+      }
+      .sli li {
+        font-size: 12px;
+        color: #555;
+        line-height: 1.65;
+        padding-left: 12px;
+        position: relative;
+      }
+      .sli li::before {
+        content: "–";
+        position: absolute;
+        left: 0;
+        color: #ddd;
+      }
+
+      #err-banner {
+        display: none;
+        background: #fff5f5;
+        border-bottom: 1px solid #fecaca;
+        padding: 7px 22px;
+        font-size: 11px;
+        color: #dc2626;
+        font-family: "JetBrains Mono", monospace;
+        flex-shrink: 0;
+      }
+
+      footer {
+        border-top: 1px solid rgba(0, 0, 0, 0.06);
+        padding: 7px 22px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-shrink: 0;
+      }
+      #nc {
+        font-size: 10px;
+        color: #ccc;
+        font-family: "JetBrains Mono", monospace;
+      }
+      .legend {
+        display: flex;
+        gap: 12px;
+        margin-left: auto;
+      }
+      .li {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 10px;
+        color: #bbb;
+      }
+      .ld {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div id="err-banner"></div>
+      <header>
+        <div class="logo">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <circle cx="7" cy="7" r="2.6" fill="#111" />
+            <circle cx="1.6" cy="3.2" r="1.3" fill="#111" opacity=".3" />
+            <circle cx="12.4" cy="3.2" r="1.3" fill="#111" opacity=".3" />
+            <circle cx="1.6" cy="10.8" r="1.3" fill="#111" opacity=".3" />
+            <circle cx="12.4" cy="10.8" r="1.3" fill="#111" opacity=".3" />
+            <line
+              x1="4.2"
+              y1="5.4"
+              x2="2.9"
+              y2="4.4"
+              stroke="#111"
+              stroke-width="0.8"
+              opacity=".2"
+            />
+            <line
+              x1="9.8"
+              y1="5.4"
+              x2="11.1"
+              y2="4.4"
+              stroke="#111"
+              stroke-width="0.8"
+              opacity=".2"
+            />
+            <line
+              x1="4.2"
+              y1="8.6"
+              x2="2.9"
+              y2="9.6"
+              stroke="#111"
+              stroke-width="0.8"
+              opacity=".2"
+            />
+            <line
+              x1="9.8"
+              y1="8.6"
+              x2="11.1"
+              y2="9.6"
+              stroke="#111"
+              stroke-width="0.8"
+              opacity=".2"
+            />
+          </svg>
+          skill graph
+        </div>
+
+        <div id="back-btn" onclick="resetToSphere()">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path
+              d="M7.5 2L3.5 6L7.5 10"
+              stroke="currentColor"
+              stroke-width="1.4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          sphere
+        </div>
+
+        <div class="search-wrap">
+          <svg
+            class="sico"
+            width="13"
+            height="13"
+            viewBox="0 0 13 13"
+            fill="none"
+          >
+            <circle cx="5.5" cy="5.5" r="4" stroke="#111" stroke-width="1.3" />
+            <path
+              d="M9 9L11.5 11.5"
+              stroke="#111"
+              stroke-width="1.3"
+              stroke-linecap="round"
+            />
+          </svg>
+          <input
+            id="search-inp"
+            type="text"
+            placeholder="Search — React, Python, Docker…"
+            autocomplete="off"
+          />
+        </div>
+        <div class="qtags" id="qt"></div>
+      </header>
+
+      <main>
+        <div id="ca">
+          <canvas id="c"></canvas>
+          <div id="loading-overlay">
+            <div class="spinner"></div>
+            <p>connecting to neo4j…</p>
+          </div>
+          <div id="idle-hint">rotate to explore · click any node to focus</div>
+        </div>
+        <div id="panel">
+          <div id="pe">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+              <circle
+                cx="16"
+                cy="16"
+                r="6"
+                stroke="#e8e8e8"
+                stroke-width="1.5"
+              />
+              <circle
+                cx="4.5"
+                cy="8"
+                r="2.5"
+                stroke="#e8e8e8"
+                stroke-width="1.2"
+              />
+              <circle
+                cx="27.5"
+                cy="8"
+                r="2.5"
+                stroke="#e8e8e8"
+                stroke-width="1.2"
+              />
+              <circle
+                cx="4.5"
+                cy="24"
+                r="2.5"
+                stroke="#e8e8e8"
+                stroke-width="1.2"
+              />
+              <circle
+                cx="27.5"
+                cy="24"
+                r="2.5"
+                stroke="#e8e8e8"
+                stroke-width="1.2"
+              />
+              <line
+                x1="10"
+                y1="12.5"
+                x2="7"
+                y2="10.3"
+                stroke="#e8e8e8"
+                stroke-width="1"
+              />
+              <line
+                x1="22"
+                y1="12.5"
+                x2="25"
+                y2="10.3"
+                stroke="#e8e8e8"
+                stroke-width="1"
+              />
+              <line
+                x1="10"
+                y1="19.5"
+                x2="7"
+                y2="21.7"
+                stroke="#e8e8e8"
+                stroke-width="1"
+              />
+              <line
+                x1="22"
+                y1="19.5"
+                x2="25"
+                y2="21.7"
+                stroke="#e8e8e8"
+                stroke-width="1"
+              />
+            </svg>
+            <p>Click any node on the sphere to explore its connections</p>
+          </div>
+          <div id="pc"></div>
+        </div>
+      </main>
+
+      <footer>
+        <span id="nc">loading…</span>
+        <div class="legend">
+          <div class="li">
+            <div class="ld" style="background: #6c63ff"></div>
+            frontend
+          </div>
+          <div class="li">
+            <div class="ld" style="background: #10b981"></div>
+            backend
+          </div>
+          <div class="li">
+            <div class="ld" style="background: #f59e0b"></div>
+            data
+          </div>
+          <div class="li">
+            <div class="ld" style="background: #3b82f6"></div>
+            tools
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script>
+      const API = "https://skill-graph-uhx4.onrender.com/";
+      const CATS = {
+        frontend: "#6C63FF",
+        backend: "#10B981",
+        data: "#F59E0B",
+        tools: "#3B82F6",
+      };
+      const QUICK = [
+        "React",
+        "Python",
+        "Node.js",
+        "Docker",
+        "TypeScript",
+        "GraphQL",
+        "PostgreSQL",
+        "AWS",
+      ];
+      let SK = {};
+
+      let canvas,
+        ctx,
+        W = 0,
+        H = 0;
+      let mode = "sphere";
+      let focused = null;
+
+      let sphereNodes = [],
+        sphereRot = 0,
+        sphereRafId = null;
+
+      let gNodes = [],
+        gEdges = [],
+        gAnim = 0,
+        gRafId = null;
+
+      const lerp = (a, b, t) => a + (b - a) * t;
+      const easeOut = (t) => 1 - Math.pow(1 - t, 4);
+      const easeInOut = (t) =>
+        t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+      function nodeRadius(name, isMain = false) {
+        if (isMain) return 38;
+        const len = name.length;
+        if (len <= 3) return 20;
+        if (len <= 5) return 22;
+        if (len <= 8) return 24;
+        if (len <= 11) return 27;
+        if (len <= 14) return 30;
+        return 33;
+      }
+
+      function showError(msg) {
+        const b = document.getElementById("err-banner");
+        b.textContent = msg;
+        b.style.display = "block";
+      }
+
+      async function fetchAllSkills() {
+        try {
+          const res = await fetch(`${API}/skills`);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const skills = await res.json();
+          skills.forEach((s) => {
+            if (!SK[s.name])
+              SK[s.name] = {
+                cat: s.category,
+                color: s.color,
+                conn: [],
+                why: "",
+                created: "",
+                build: [],
+                learn: [],
+              };
+          });
+          document.getElementById("nc").textContent = skills.length + " skills";
+          return true;
+        } catch (e) {
+          showError(
+            "Cannot reach backend at " +
+              API +
+              ' — make sure "node src/index.js" is running',
+          );
+          document.getElementById("nc").textContent = "offline";
+          return false;
+        }
+      }
+
+      async function fetchSkill(name) {
+        if (SK[name] && SK[name].conn.length > 0) return SK[name];
+        try {
+          const res = await fetch(`${API}/skills/${encodeURIComponent(name)}`);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          SK[name] = {
+            cat: data.center.category,
+            color: data.center.color,
+            conn: data.connections.map((c) => c.skill.name),
+            why: data.center.why || "",
+            created: data.center.created || "",
+            build: data.center.build || [],
+            learn: data.center.learn || [],
+          };
+          data.connections.forEach((c) => {
+            if (!SK[c.skill.name])
+              SK[c.skill.name] = {
+                cat: c.skill.category,
+                color: c.skill.color,
+                conn: [],
+                why: "",
+                created: "",
+                build: [],
+                learn: [],
+              };
+          });
+          return SK[name];
+        } catch (e) {
+          showError("Failed to load: " + name);
+          return null;
+        }
+      }
+
+      async function init() {
+        const ok = await fetchAllSkills();
+        const overlay = document.getElementById("loading-overlay");
+        overlay.style.opacity = "0";
+        setTimeout(() => (overlay.style.display = "none"), 400);
+        if (!ok) return;
+
+        const qt = document.getElementById("qt");
+        QUICK.forEach((q) => {
+          const b = document.createElement("span");
+          b.className = "qtag";
+          b.textContent = q;
+          b.onclick = () => {
+            document.getElementById("search-inp").value = q;
+            focusSkill(q);
+          };
+          qt.appendChild(b);
+        });
+
+        const inp = document.getElementById("search-inp");
+        inp.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            const m = findSkill(inp.value.trim());
+            if (m) focusSkill(m);
+          }
+        });
+        inp.addEventListener("input", () => {
+          if (!inp.value.trim()) resetToSphere();
+        });
+
+        canvas.addEventListener("click", onClick);
+        canvas.addEventListener("mousemove", onMove);
+        window.addEventListener("resize", () => {
+          doResize();
+          if (mode === "sphere") buildSphereNodes();
+          else if (focused) buildGraph(focused, true);
+        });
+
+        buildSphereNodes();
+        startSphere();
+      }
+
+      function doResize() {
+        const a = document.getElementById("ca");
+        W = a.clientWidth;
+        H = a.clientHeight;
+        canvas.width = W * devicePixelRatio;
+        canvas.height = H * devicePixelRatio;
+        canvas.style.width = W + "px";
+        canvas.style.height = H + "px";
+        if (ctx) {
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+          ctx.scale(devicePixelRatio, devicePixelRatio);
+        }
+      }
+
+      function findSkill(q) {
+        if (!q) return null;
+        q = q.toLowerCase();
+        return (
+          Object.keys(SK).find((k) => k.toLowerCase() === q) ||
+          Object.keys(SK).find((k) => k.toLowerCase().startsWith(q)) ||
+          Object.keys(SK).find((k) => k.toLowerCase().includes(q))
+        );
+      }
+
+      function buildSphereNodes() {
+        const keys = Object.keys(SK),
+          n = keys.length;
+        sphereNodes = keys.map((name, i) => {
+          const phi = Math.acos(1 - (2 * (i + 0.5)) / n);
+          const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+          return { name, phi, theta, x: 0, y: 0, z: 0, hovered: false };
+        });
+      }
+
+      function projectNode(nd, rotY) {
+        const R = Math.min(W, H) * 0.33,
+          tilt = 0.3;
+        const sx = Math.sin(nd.phi) * Math.cos(nd.theta + rotY);
+        const sy = Math.cos(nd.phi);
+        const sz = Math.sin(nd.phi) * Math.sin(nd.theta + rotY);
+        nd.x = W / 2 + sx * R;
+        nd.y = H / 2 + (sy * Math.cos(tilt) - sz * Math.sin(tilt)) * R;
+        nd.z = (sy * Math.sin(tilt) + sz * Math.cos(tilt)) * R;
+      }
+
+      function startSphere() {
+        cancelAnimationFrame(gRafId);
+        loopSphere();
+      }
+
+      function loopSphere() {
+        sphereRot += 0.0022;
+
+        ctx.clearRect(0, 0, W, H);
+        drawDotGrid();
+        sphereNodes.forEach((nd) => projectNode(nd, sphereRot));
+        const sorted = [...sphereNodes].sort((a, b) => a.z - b.z);
+        const R = Math.min(W, H) * 0.33;
+
+        for (let i = 0; i < sorted.length; i++) {
+          for (let j = i + 1; j < sorted.length; j++) {
+            const a = sorted[i],
+              b = sorted[j];
+            const d = Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+            if (d < R * 0.68) {
+              const alpha =
+                ((1 - d / (R * 0.68)) * 0.13 * ((a.z + b.z) / (2 * R) + 1)) / 2;
+              ctx.beginPath();
+              ctx.moveTo(a.x, a.y);
+              ctx.lineTo(b.x, b.y);
+              ctx.strokeStyle = `rgba(0,0,0,${Math.max(0, alpha)})`;
+              ctx.lineWidth = 0.5;
+              ctx.stroke();
+            }
+          }
+        }
+
+        sorted.forEach((nd) => {
+          const depth = (nd.z / R + 1) / 2;
+          const col = SK[nd.name]?.color || "#888";
+          const baseR = nodeRadius(nd.name);
+          const r = baseR * (0.4 + depth * 0.7) + (nd.hovered ? 3 : 0);
+          const alpha = 0.2 + depth * 0.8;
+
+          ctx.globalAlpha = alpha;
+
+          ctx.beginPath();
+          ctx.arc(nd.x, nd.y, r, 0, Math.PI * 2);
+          ctx.fillStyle = "#fff";
+          ctx.fill();
+          ctx.strokeStyle = col;
+          ctx.lineWidth = depth > 0.5 ? 1.8 : 0.8;
+          ctx.stroke();
+
+          if (depth > 0.35) {
+            const name = nd.name;
+            const fs = Math.max(
+              7,
+              Math.min(11, (r * 1.3) / Math.max(name.length * 0.55, 1)),
+            );
+            ctx.font = `500 ${fs}px 'Inter',sans-serif`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillStyle = col;
+
+            const words = name.split(/[\s\/]/);
+            if (words.length === 1) {
+              ctx.fillText(name, nd.x, nd.y);
+            } else {
+              const lh = fs + 1.5;
+              words.forEach((w, i) =>
+                ctx.fillText(w, nd.x, nd.y + (i - (words.length - 1) / 2) * lh),
+              );
+            }
+          }
+          ctx.globalAlpha = 1;
+        });
+
+        sphereRafId = requestAnimationFrame(loopSphere);
+      }
+
+      async function focusSkill(name) {
+        if (!SK[name]) return;
+        cancelAnimationFrame(sphereRafId);
+        focused = name;
+        mode = "focused";
+        document.getElementById("idle-hint").style.opacity = "0";
+        document.getElementById("back-btn").style.display = "flex";
+        document.getElementById("pe").style.display = "none";
+        document.getElementById("pc").style.display = "flex";
+        document.getElementById("pc").innerHTML = `
     <div style="display:flex;align-items:center;gap:8px;margin-top:32px;justify-content:center">
       <div class="spinner"></div>
       <span style="font-size:11px;color:#bbb;font-family:'JetBrains Mono',monospace">loading ${name}…</span>
-    </div>`
-  const skill = await fetchSkill(name)
-  if (!skill) return
-  buildGraph(name, false)
-  showPanel(name)
-}
-
-function resetToSphere() {
-  cancelAnimationFrame(gRafId)
-  focused=null; mode='sphere'
-  document.getElementById('idle-hint').style.opacity='1'
-  document.getElementById('back-btn').style.display='none'
-  document.getElementById('search-inp').value=''
-  document.getElementById('pe').style.display='flex'
-  document.getElementById('pc').style.display='none'
-  document.getElementById('pc').innerHTML=''
-  startSphere()
-}
-
-// ── GRAPH ─────────────────────────────────────────────────
-function buildGraph(center, instant) {
-  const s=SK[center]; if(!s) return
-  const cx=W/2, cy=H/2
-  const conns=s.conn.filter(c=>SK[c]).slice(0,10)
-  const mainR = nodeRadius(center, true)
-
-  gNodes=[{ name:center, sx:W/2,sy:H/2, x:instant?cx:W/2, y:instant?cy:H/2, tx:cx,ty:cy, r:mainR, main:true, hovered:false }]
-  conns.forEach((c,i) => {
-    const ang=(i/conns.length)*Math.PI*2-Math.PI/2
-    const dist=Math.min(W,H)*0.33
-    const tx=cx+Math.cos(ang)*dist, ty=cy+Math.sin(ang)*dist
-    const r=nodeRadius(c)
-    gNodes.push({ name:c, sx:W/2,sy:H/2, x:instant?tx:W/2, y:instant?ty:H/2, tx,ty, r, main:false, hovered:false })
-  })
-  gEdges=conns.map((_,i)=>({from:0,to:i+1}))
-  gAnim=instant?1:0
-  cancelAnimationFrame(gRafId)
-  loopGraph()
-}
-
-function loopGraph() {
-  if (gAnim<1) {
-    gAnim=Math.min(gAnim+0.038,1)
-    const t=easeOut(gAnim)
-    gNodes.forEach(nd => { if(!nd.main){nd.x=lerp(nd.sx,nd.tx,t);nd.y=lerp(nd.sy,nd.ty,t)} })
-  }
-  ctx.clearRect(0,0,W,H)
-  drawDotGrid()
-  if(!gNodes.length){gRafId=requestAnimationFrame(loopGraph);return}
-
-  // Edges
-  gEdges.forEach(e => {
-    const a=gNodes[e.from],b=gNodes[e.to]
-    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y)
-    ctx.strokeStyle='rgba(0,0,0,0.06)';ctx.lineWidth=1;ctx.stroke()
-  })
-
-  // Nodes
-  gNodes.forEach(nd => {
-    const col=SK[nd.name]?.color||'#888'
-    const r=nd.r+(nd.hovered&&!nd.main?3:0)
-
-    if (nd.main) {
-      // Outer glow rings
-      ctx.beginPath();ctx.arc(nd.x,nd.y,r+14,0,Math.PI*2)
-      ctx.strokeStyle=col+'12';ctx.lineWidth=1.5;ctx.stroke()
-      ctx.beginPath();ctx.arc(nd.x,nd.y,r+7,0,Math.PI*2)
-      ctx.strokeStyle=col+'20';ctx.lineWidth=1;ctx.stroke()
-      ctx.beginPath();ctx.arc(nd.x,nd.y,r,0,Math.PI*2)
-      ctx.fillStyle=col;ctx.fill()
-
-      // Text — white on colored bg
-      const words=nd.name.split(/[\s\/]/)
-      const fs=words.length>1?11:12
-      ctx.font=`600 ${fs}px 'Inter',sans-serif`
-      ctx.textAlign='center';ctx.textBaseline='middle'
-      // Decide text color based on brightness
-      const bright=parseInt(col.slice(1,3),16)*0.299+parseInt(col.slice(3,5),16)*0.587+parseInt(col.slice(5,7),16)*0.114
-      ctx.fillStyle=bright>155?'rgba(0,0,0,0.8)':'#fff'
-      const lh=fs+3
-      words.forEach((w,i)=>ctx.fillText(w,nd.x,nd.y+(i-(words.length-1)/2)*lh))
-    } else {
-      // Satellite glow
-      ctx.beginPath();ctx.arc(nd.x,nd.y,r+5,0,Math.PI*2)
-      ctx.strokeStyle=col+'12';ctx.lineWidth=1;ctx.stroke()
-      ctx.beginPath();ctx.arc(nd.x,nd.y,r,0,Math.PI*2)
-      ctx.fillStyle='#fff';ctx.fill()
-      ctx.strokeStyle=col;ctx.lineWidth=nd.hovered?2:1.5;ctx.stroke()
-
-      // Category dot top-right
-      const catCol=CATS[SK[nd.name]?.cat]||'#888'
-      ctx.beginPath();ctx.arc(nd.x+r*0.68,nd.y-r*0.68,3,0,Math.PI*2)
-      ctx.fillStyle=catCol;ctx.fill()
-
-      // Text — colored, fits inside circle
-      const name=nd.name
-      const words=name.split(/[\s\/]/)
-      const maxW=(r-4)*2
-      let fs=10
-      ctx.font=`500 ${fs}px 'Inter',sans-serif`
-      // Scale down font if needed
-      while(ctx.measureText(words[0]).width>maxW-4 && fs>7){fs--; ctx.font=`500 ${fs}px 'Inter',sans-serif`}
-      ctx.textAlign='center';ctx.textBaseline='middle'
-      ctx.fillStyle=col
-      const lh=fs+2
-      words.forEach((p,i)=>ctx.fillText(p,nd.x,nd.y+(i-(words.length-1)/2)*lh))
-    }
-  })
-
-  gRafId=requestAnimationFrame(loopGraph)
-}
-
-// ── SHARED ────────────────────────────────────────────────
-function drawDotGrid() {
-  ctx.fillStyle='rgba(0,0,0,0.028)'
-  for(let x=28;x<W;x+=42)for(let y=28;y<H;y+=42){
-    ctx.beginPath();ctx.arc(x,y,1,0,Math.PI*2);ctx.fill()
-  }
-}
-
-function onMove(e) {
-  const rect=canvas.getBoundingClientRect()
-  const mx=e.clientX-rect.left, my=e.clientY-rect.top
-  if(mode==='sphere'){
-    const R=Math.min(W,H)*0.33
-    let anyHovered=false
-    sphereNodes.forEach(nd=>{
-      const depth=(nd.z/R+1)/2
-      const r=nodeRadius(nd.name)*(0.4+depth*0.7)+6
-      nd.hovered=Math.hypot(nd.x-mx,nd.y-my)<r
-      if(nd.hovered)anyHovered=true
-    })
-    canvas.style.cursor=anyHovered?'pointer':'default'
-  } else {
-    let anyHovered=false
-    gNodes.forEach(nd=>{
-      nd.hovered=Math.hypot(nd.x-mx,nd.y-my)<nd.r+8
-      if(!nd.main&&nd.hovered)anyHovered=true
-    })
-    canvas.style.cursor=anyHovered?'pointer':'default'
-  }
-}
-
-function onClick(e) {
-  const rect=canvas.getBoundingClientRect()
-  const mx=e.clientX-rect.left, my=e.clientY-rect.top
-  if(mode==='sphere'){
-    const R=Math.min(W,H)*0.33
-    const sorted=[...sphereNodes].sort((a,b)=>b.z-a.z)
-    for(const nd of sorted){
-      const depth=(nd.z/R+1)/2
-      const r=nodeRadius(nd.name)*(0.4+depth*0.7)+6
-      if(Math.hypot(nd.x-mx,nd.y-my)<r){
-        document.getElementById('search-inp').value=nd.name
-        focusSkill(nd.name); return
+    </div>`;
+        const skill = await fetchSkill(name);
+        if (!skill) return;
+        buildGraph(name, false);
+        showPanel(name);
       }
-    }
-  } else {
-    for(const nd of gNodes){
-      if(Math.hypot(nd.x-mx,nd.y-my)<nd.r+8){
-        document.getElementById('search-inp').value=nd.name
-        focusSkill(nd.name); return
-      }
-    }
-  }
-}
 
-// ── PANEL ─────────────────────────────────────────────────
-function showPanel(name) {
-  const s=SK[name]; if(!s) return
-  document.getElementById('pe').style.display='none'
-  const pc=document.getElementById('pc')
-  pc.style.display='flex'
-  const col=s.color
-  const chips=s.conn.filter(c=>SK[c]).map(c=>{
-    const cc=SK[c].color
-    return `<span class="chip" style="color:${cc};border-color:${cc}28;background:${cc}0c" onclick="focusSkill('${c}')">${c}</span>`
-  }).join('')
-  pc.innerHTML=`
+      function resetToSphere() {
+        cancelAnimationFrame(gRafId);
+        focused = null;
+        mode = "sphere";
+        document.getElementById("idle-hint").style.opacity = "1";
+        document.getElementById("back-btn").style.display = "none";
+        document.getElementById("search-inp").value = "";
+        document.getElementById("pe").style.display = "flex";
+        document.getElementById("pc").style.display = "none";
+        document.getElementById("pc").innerHTML = "";
+        startSphere();
+      }
+
+      function buildGraph(center, instant) {
+        const s = SK[center];
+        if (!s) return;
+        const cx = W / 2,
+          cy = H / 2;
+        const conns = s.conn.filter((c) => SK[c]).slice(0, 10);
+        const mainR = nodeRadius(center, true);
+
+        gNodes = [
+          {
+            name: center,
+            sx: W / 2,
+            sy: H / 2,
+            x: instant ? cx : W / 2,
+            y: instant ? cy : H / 2,
+            tx: cx,
+            ty: cy,
+            r: mainR,
+            main: true,
+            hovered: false,
+          },
+        ];
+        conns.forEach((c, i) => {
+          const ang = (i / conns.length) * Math.PI * 2 - Math.PI / 2;
+          const dist = Math.min(W, H) * 0.33;
+          const tx = cx + Math.cos(ang) * dist,
+            ty = cy + Math.sin(ang) * dist;
+          const r = nodeRadius(c);
+          gNodes.push({
+            name: c,
+            sx: W / 2,
+            sy: H / 2,
+            x: instant ? tx : W / 2,
+            y: instant ? ty : H / 2,
+            tx,
+            ty,
+            r,
+            main: false,
+            hovered: false,
+          });
+        });
+        gEdges = conns.map((_, i) => ({ from: 0, to: i + 1 }));
+        gAnim = instant ? 1 : 0;
+        cancelAnimationFrame(gRafId);
+        loopGraph();
+      }
+
+      function loopGraph() {
+        if (gAnim < 1) {
+          gAnim = Math.min(gAnim + 0.038, 1);
+          const t = easeOut(gAnim);
+          gNodes.forEach((nd) => {
+            if (!nd.main) {
+              nd.x = lerp(nd.sx, nd.tx, t);
+              nd.y = lerp(nd.sy, nd.ty, t);
+            }
+          });
+        }
+        ctx.clearRect(0, 0, W, H);
+        drawDotGrid();
+        if (!gNodes.length) {
+          gRafId = requestAnimationFrame(loopGraph);
+          return;
+        }
+
+        gEdges.forEach((e) => {
+          const a = gNodes[e.from],
+            b = gNodes[e.to];
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+          ctx.strokeStyle = "rgba(0,0,0,0.06)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        });
+
+        gNodes.forEach((nd) => {
+          const col = SK[nd.name]?.color || "#888";
+          const r = nd.r + (nd.hovered && !nd.main ? 3 : 0);
+
+          if (nd.main) {
+            ctx.beginPath();
+            ctx.arc(nd.x, nd.y, r + 14, 0, Math.PI * 2);
+            ctx.strokeStyle = col + "12";
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(nd.x, nd.y, r + 7, 0, Math.PI * 2);
+            ctx.strokeStyle = col + "20";
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(nd.x, nd.y, r, 0, Math.PI * 2);
+            ctx.fillStyle = col;
+            ctx.fill();
+
+            const words = nd.name.split(/[\s\/]/);
+            const fs = words.length > 1 ? 11 : 12;
+            ctx.font = `600 ${fs}px 'Inter',sans-serif`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            const bright =
+              parseInt(col.slice(1, 3), 16) * 0.299 +
+              parseInt(col.slice(3, 5), 16) * 0.587 +
+              parseInt(col.slice(5, 7), 16) * 0.114;
+            ctx.fillStyle = bright > 155 ? "rgba(0,0,0,0.8)" : "#fff";
+            const lh = fs + 3;
+            words.forEach((w, i) =>
+              ctx.fillText(w, nd.x, nd.y + (i - (words.length - 1) / 2) * lh),
+            );
+          } else {
+            ctx.beginPath();
+            ctx.arc(nd.x, nd.y, r + 5, 0, Math.PI * 2);
+            ctx.strokeStyle = col + "12";
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(nd.x, nd.y, r, 0, Math.PI * 2);
+            ctx.fillStyle = "#fff";
+            ctx.fill();
+            ctx.strokeStyle = col;
+            ctx.lineWidth = nd.hovered ? 2 : 1.5;
+            ctx.stroke();
+
+            const catCol = CATS[SK[nd.name]?.cat] || "#888";
+            ctx.beginPath();
+            ctx.arc(nd.x + r * 0.68, nd.y - r * 0.68, 3, 0, Math.PI * 2);
+            ctx.fillStyle = catCol;
+            ctx.fill();
+
+            const name = nd.name;
+            const words = name.split(/[\s\/]/);
+            const maxW = (r - 4) * 2;
+            let fs = 10;
+            ctx.font = `500 ${fs}px 'Inter',sans-serif`;
+            while (ctx.measureText(words[0]).width > maxW - 4 && fs > 7) {
+              fs--;
+              ctx.font = `500 ${fs}px 'Inter',sans-serif`;
+            }
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillStyle = col;
+            const lh = fs + 2;
+            words.forEach((p, i) =>
+              ctx.fillText(p, nd.x, nd.y + (i - (words.length - 1) / 2) * lh),
+            );
+          }
+        });
+
+        gRafId = requestAnimationFrame(loopGraph);
+      }
+
+      function drawDotGrid() {
+        ctx.fillStyle = "rgba(0,0,0,0.028)";
+        for (let x = 28; x < W; x += 42)
+          for (let y = 28; y < H; y += 42) {
+            ctx.beginPath();
+            ctx.arc(x, y, 1, 0, Math.PI * 2);
+            ctx.fill();
+          }
+      }
+
+      function onMove(e) {
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left,
+          my = e.clientY - rect.top;
+        if (mode === "sphere") {
+          const R = Math.min(W, H) * 0.33;
+          let anyHovered = false;
+          sphereNodes.forEach((nd) => {
+            const depth = (nd.z / R + 1) / 2;
+            const r = nodeRadius(nd.name) * (0.4 + depth * 0.7) + 6;
+            nd.hovered = Math.hypot(nd.x - mx, nd.y - my) < r;
+            if (nd.hovered) anyHovered = true;
+          });
+          canvas.style.cursor = anyHovered ? "pointer" : "default";
+        } else {
+          let anyHovered = false;
+          gNodes.forEach((nd) => {
+            nd.hovered = Math.hypot(nd.x - mx, nd.y - my) < nd.r + 8;
+            if (!nd.main && nd.hovered) anyHovered = true;
+          });
+          canvas.style.cursor = anyHovered ? "pointer" : "default";
+        }
+      }
+
+      function onClick(e) {
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left,
+          my = e.clientY - rect.top;
+        if (mode === "sphere") {
+          const R = Math.min(W, H) * 0.33;
+          const sorted = [...sphereNodes].sort((a, b) => b.z - a.z);
+          for (const nd of sorted) {
+            const depth = (nd.z / R + 1) / 2;
+            const r = nodeRadius(nd.name) * (0.4 + depth * 0.7) + 6;
+            if (Math.hypot(nd.x - mx, nd.y - my) < r) {
+              document.getElementById("search-inp").value = nd.name;
+              focusSkill(nd.name);
+              return;
+            }
+          }
+        } else {
+          for (const nd of gNodes) {
+            if (Math.hypot(nd.x - mx, nd.y - my) < nd.r + 8) {
+              document.getElementById("search-inp").value = nd.name;
+              focusSkill(nd.name);
+              return;
+            }
+          }
+        }
+      }
+
+      function showPanel(name) {
+        const s = SK[name];
+        if (!s) return;
+        document.getElementById("pe").style.display = "none";
+        const pc = document.getElementById("pc");
+        pc.style.display = "flex";
+        const col = s.color;
+        const chips = s.conn
+          .filter((c) => SK[c])
+          .map((c) => {
+            const cc = SK[c].color;
+            return `<span class="chip" style="color:${cc};border-color:${cc}28;background:${cc}0c" onclick="focusSkill('${c}')">${c}</span>`;
+          })
+          .join("");
+        pc.innerHTML = `
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
       <div style="width:8px;height:8px;border-radius:50%;background:${col};flex-shrink:0"></div>
       <div class="sname">${name}</div>
@@ -597,22 +1095,22 @@ function showPanel(name) {
     <div class="sl">History</div><div class="sb">${s.created}</div>
     <div class="div"></div>
     <div class="sl">What you can build</div>
-    <ul class="sli">${s.build.map(b=>`<li>${b}</li>`).join('')}</ul>
+    <ul class="sli">${s.build.map((b) => `<li>${b}</li>`).join("")}</ul>
     <div class="sl">Where to learn</div>
-    <ul class="sli">${s.learn.map(l=>`<li>${l}</li>`).join('')}</ul>
-  `
-}
+    <ul class="sli">${s.learn.map((l) => `<li>${l}</li>`).join("")}</ul>
+  `;
+      }
 
-window.focusSkill=focusSkill
-window.resetToSphere=resetToSphere
+      window.focusSkill = focusSkill;
+      window.resetToSphere = resetToSphere;
 
-window.addEventListener('load', () => {
-  canvas=document.getElementById('c')
-  doResize()
-  ctx=canvas.getContext('2d')
-  ctx.scale(devicePixelRatio,devicePixelRatio)
-  init()
-})
-</script>
-</body>
+      window.addEventListener("load", () => {
+        canvas = document.getElementById("c");
+        doResize();
+        ctx = canvas.getContext("2d");
+        ctx.scale(devicePixelRatio, devicePixelRatio);
+        init();
+      });
+    </script>
+  </body>
 </html>

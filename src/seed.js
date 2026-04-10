@@ -101,14 +101,12 @@ const relationships = [
 ]
 
 async function seed() {
-  console.log('🌱 Starting seed...')
+  console.log('Starting seed...')
 
-  // Step 1 — wipe existing data
-  console.log('🗑️  Clearing old data...')
+  console.log('Clearing old data...')
   await runQuery('MATCH (n) DETACH DELETE n')
 
-  // Step 2 — create all skill nodes
-  console.log('📦 Creating skill nodes...')
+  console.log('Creating skill nodes...')
   for (const skill of skills) {
     await runQuery(
       `MERGE (s:Skill {name: $name})
@@ -116,10 +114,9 @@ async function seed() {
       skill
     )
   }
-  console.log(`   ✓ ${skills.length} skills created`)
+  console.log(`${skills.length} skills created`)
 
-  // Step 3 — create all relationships
-  console.log('🔗 Creating relationships...')
+  console.log('Creating relationships...')
   for (const [from, to, reason] of relationships) {
     await runQuery(
       `MATCH (a:Skill {name: $from})
@@ -128,15 +125,15 @@ async function seed() {
       { from, to, reason }
     )
   }
-  console.log(`   ✓ ${relationships.length} relationships created`)
+  console.log(`${relationships.length} relationships created`)
 
-  console.log('✅ Seed complete!')
+  console.log('Seed complete!')
 
   // Close the driver when done
   await driver.close()
 }
 
 seed().catch(err => {
-  console.error('❌ Seed failed:', err)
+  console.error('Seed failed:', err)
   process.exit(1)
 })

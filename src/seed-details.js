@@ -47,17 +47,17 @@ async function seedDetails() {
         name,
         why:     data.why,
         created: data.created,
-        build:   data.build,    // Neo4j stores arrays natively
+        build:   data.build,
         learn:   data.learn,
       }
     )
   }
 
-  console.log(`✅ Details added to ${Object.keys(details).length} skills`)
+  console.log(`Details added to ${Object.keys(details).length} skills`)
   await driver.close()
 }
 
 seedDetails().catch(err => {
-  console.error('❌ Failed:', err)
+  console.error('Failed:', err)
   process.exit(1)
 })
