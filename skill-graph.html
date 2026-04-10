@@ -560,7 +560,7 @@
         </svg>
       </div>
       <div>
-        <div class="mob-title">Best on a PC. So, open ur PC</div>
+        <div class="mob-title">Best on a PC. So, open your PC</div>
       </div>
       <div class="mob-sub">
         The skill graph is an interactive 3D experience — it works best on a
@@ -758,6 +758,9 @@
 
       <footer>
         <span id="nc">loading…</span>
+        <span style="margin-left:10px;font-size:10px;color:#aaa;">
+          made by mithun ❤️
+        </span>
         <div class="legend">
           <div class="li">
             <div class="ld" style="background: #6c63ff"></div>
@@ -931,7 +934,10 @@
         inp.addEventListener("input", () => {
           if (!inp.value.trim()) resetToSphere();
         });
-
+        canvas.addEventListener("mousedown", onMouseDown);
+        canvas.addEventListener("mousemove", onMouseDrag);
+        canvas.addEventListener("mouseup", onMouseUp);
+        canvas.addEventListener("mouseleave", onMouseUp);
         canvas.addEventListener("click", onClick);
         canvas.addEventListener("mousemove", onMove);
         canvas.addEventListener("touchstart", onTouchStart, { passive: true });
@@ -1318,6 +1324,8 @@
         touchStartY = 0,
         touchLastX = 0,
         touchDragging = false;
+      let mouseDown = false;
+      let lastMouseX = 0;
       const DRAG_THRESHOLD = 6;
 
       function onTouchStart(e) {
@@ -1335,7 +1343,7 @@
         if (!touchDragging && Math.hypot(dx, dy) > DRAG_THRESHOLD)
           touchDragging = true;
         if (touchDragging && mode === "sphere") {
-          sphereRot += (e.touches[0].clientX - touchLastX) * 0.008;
+          sphereRot -= (e.touches[0].clientX - touchLastX) * 0.008;
         }
         touchLastX = e.touches[0].clientX;
       }
@@ -1370,6 +1378,25 @@
             }
           }
         }
+      }
+      function onMouseDown(e) {
+        mouseDown = true;
+        lastMouseX = e.clientX;
+      }
+
+      function onMouseDrag(e) {
+        if (!mouseDown) return;
+
+        if (mode === "sphere") {
+          const dx = e.clientX - lastMouseX;
+          sphereRot += dx * 0.006; // adjust sensitivity here
+        }
+
+        lastMouseX = e.clientX;
+      }
+
+      function onMouseUp() {
+        mouseDown = false;
       }
       function showPanel(name) {
         const s = SK[name];
