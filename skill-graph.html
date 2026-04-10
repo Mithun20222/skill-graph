@@ -1389,7 +1389,7 @@
 
         if (mode === "sphere") {
           const dx = e.clientX - lastMouseX;
-          sphereRot += dx * 0.006; // adjust sensitivity here
+          sphereRot -= dx * 0.006;
         }
 
         lastMouseX = e.clientX;
