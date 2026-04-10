@@ -7,7 +7,7 @@ const { runQuery } = require('./db')
 
 const app = express()
 app.use(cors({
-  orgin: '*'
+  origin: '*'
 }))
 app.use(express.json())
 
