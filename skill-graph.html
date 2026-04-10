@@ -3,7 +3,6 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='black'/></svg>">
     <title>Skill Graph Explorer</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
@@ -25,6 +24,90 @@
         color: #111;
         overflow: hidden;
       }
+
+      #mobile-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        background: #fff;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 28px;
+        padding: 40px;
+        text-align: center;
+      }
+      @media (max-width: 768px) {
+        #mobile-overlay {
+          display: flex;
+        }
+      }
+      .mob-icon {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: #f5f5f3;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: mob-float 3s ease-in-out infinite;
+      }
+      @keyframes mob-float {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-8px);
+        }
+      }
+      .mob-title {
+        font-size: 22px;
+        font-weight: 600;
+        letter-spacing: -0.04em;
+        color: #111;
+        line-height: 1.2;
+      }
+      .mob-sub {
+        font-size: 14px;
+        color: #888;
+        line-height: 1.7;
+        max-width: 260px;
+        font-weight: 400;
+      }
+      .mob-badge {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: #f5f5f3;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 99px;
+        padding: 8px 18px;
+        font-size: 13px;
+        color: #555;
+        font-family: "JetBrains Mono", monospace;
+      }
+      @keyframes mob-blink {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.3;
+        }
+      }
+      .mob-cursor {
+        display: inline-block;
+        width: 2px;
+        height: 14px;
+        background: #111;
+        border-radius: 1px;
+        animation: mob-blink 1.2s ease-in-out infinite;
+        vertical-align: middle;
+        margin-left: 2px;
+      }
       #app {
         display: flex;
         flex-direction: column;
@@ -38,6 +121,81 @@
         align-items: center;
         gap: 12px;
         flex-shrink: 0;
+        flex-wrap: wrap;
+      }
+
+      @media (max-width: 640px) {
+        header {
+          padding: 10px 14px 8px;
+          gap: 8px;
+        }
+        .logo {
+          font-size: 13px;
+        }
+        .search-wrap {
+          order: 3;
+          flex: 0 0 100%;
+          max-width: 100%;
+        }
+        .search-wrap input {
+          font-size: 16px;
+        }
+        .qtags {
+          display: none;
+        }
+        #back-btn {
+          font-size: 11px;
+          padding: 4px 8px;
+        }
+
+        main {
+          grid-template-columns: 1fr;
+          grid-template-rows: 1fr auto;
+        }
+
+        #panel {
+          border-left: none;
+          border-top: 1px solid rgba(0, 0, 0, 0.07);
+          max-height: 42vh;
+          overflow-y: auto;
+        }
+        #pe {
+          padding: 16px;
+          gap: 6px;
+          flex-direction: row;
+          justify-content: flex-start;
+        }
+        #pe svg {
+          width: 24px;
+          height: 24px;
+          flex-shrink: 0;
+        }
+        #pe p {
+          font-size: 12px;
+          text-align: left;
+          max-width: none;
+        }
+        #pc {
+          padding: 14px 14px;
+        }
+        .sname {
+          font-size: 17px;
+        }
+        .chips {
+          gap: 4px;
+          margin-bottom: 12px;
+        }
+
+        #idle-hint {
+          font-size: 10px;
+          bottom: 14px;
+        }
+        footer {
+          padding: 5px 14px;
+        }
+        #nc {
+          display: none;
+        }
       }
       .logo {
         font-size: 13.5px;
@@ -49,6 +207,7 @@
         white-space: nowrap;
       }
 
+      /* Back button */
       #back-btn {
         display: none;
         align-items: center;
@@ -169,6 +328,7 @@
         white-space: nowrap;
       }
 
+      /* Spinning loader overlay */
       #loading-overlay {
         position: absolute;
         inset: 0;
@@ -341,6 +501,86 @@
     </style>
   </head>
   <body>
+    <!-- Mobile overlay -->
+    <div id="mobile-overlay">
+      <div class="mob-icon">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <rect
+            x="3"
+            y="6"
+            width="26"
+            height="17"
+            rx="2.5"
+            stroke="#111"
+            stroke-width="1.5"
+          />
+          <path
+            d="M10 26h12M16 23v3"
+            stroke="#111"
+            stroke-width="1.5"
+            stroke-linecap="round"
+          />
+          <circle cx="16" cy="14.5" r="4" stroke="#444" stroke-width="1.2" />
+          <line
+            x1="16"
+            y1="10.5"
+            x2="16"
+            y2="8"
+            stroke="#444"
+            stroke-width="1"
+            stroke-linecap="round"
+          />
+          <line
+            x1="16"
+            y1="18.5"
+            x2="16"
+            y2="21"
+            stroke="#444"
+            stroke-width="1"
+            stroke-linecap="round"
+          />
+          <line
+            x1="12"
+            y1="14.5"
+            x2="9.5"
+            y2="14.5"
+            stroke="#444"
+            stroke-width="1"
+            stroke-linecap="round"
+          />
+          <line
+            x1="20"
+            y1="14.5"
+            x2="22.5"
+            y2="14.5"
+            stroke="#444"
+            stroke-width="1"
+            stroke-linecap="round"
+          />
+        </svg>
+      </div>
+      <div>
+        <div class="mob-title">Best on a PC. So, open ur PC</div>
+      </div>
+      <div class="mob-sub">
+        The skill graph is an interactive 3D experience — it works best on a
+        larger screen.
+      </div>
+      <div class="mob-badge">
+        Open on your laptop<span class="mob-cursor"></span>
+      </div>
+      <div
+        style="
+          font-size: 12px;
+          color: #ccc;
+          font-family: &quot;JetBrains Mono&quot;, monospace;
+          letter-spacing: 0.04em;
+        "
+      >
+        skill-graph-uhx4.onrender.com
+      </div>
+    </div>
+
     <div id="app">
       <div id="err-banner"></div>
       <header>
@@ -540,7 +780,7 @@
     </div>
 
     <script>
-      const API = "https://skill-graph-uhx4.onrender.com";
+      const API = "http://localhost:3000";
       const CATS = {
         frontend: "#6C63FF",
         backend: "#10B981",
@@ -582,6 +822,7 @@
 
       function nodeRadius(name, isMain = false) {
         if (isMain) return 38;
+        // Measure text roughly: longer names get bigger circles
         const len = name.length;
         if (len <= 3) return 20;
         if (len <= 5) return 22;
@@ -693,6 +934,9 @@
 
         canvas.addEventListener("click", onClick);
         canvas.addEventListener("mousemove", onMove);
+        canvas.addEventListener("touchstart", onTouchStart, { passive: true });
+        canvas.addEventListener("touchmove", onTouchMove, { passive: true });
+        canvas.addEventListener("touchend", onTouchEnd, { passive: true });
         window.addEventListener("resize", () => {
           doResize();
           if (mode === "sphere") buildSphereNodes();
@@ -1070,6 +1314,63 @@
         }
       }
 
+      let touchStartX = 0,
+        touchStartY = 0,
+        touchLastX = 0,
+        touchDragging = false;
+      const DRAG_THRESHOLD = 6;
+
+      function onTouchStart(e) {
+        if (e.touches.length !== 1) return;
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        touchLastX = e.touches[0].clientX;
+        touchDragging = false;
+      }
+
+      function onTouchMove(e) {
+        if (e.touches.length !== 1) return;
+        const dx = e.touches[0].clientX - touchStartX;
+        const dy = e.touches[0].clientY - touchStartY;
+        if (!touchDragging && Math.hypot(dx, dy) > DRAG_THRESHOLD)
+          touchDragging = true;
+        if (touchDragging && mode === "sphere") {
+          sphereRot += (e.touches[0].clientX - touchLastX) * 0.008;
+        }
+        touchLastX = e.touches[0].clientX;
+      }
+
+      function onTouchEnd(e) {
+        if (touchDragging) {
+          touchDragging = false;
+          return;
+        }
+        const t = e.changedTouches[0];
+        const rect = canvas.getBoundingClientRect();
+        const mx = t.clientX - rect.left,
+          my = t.clientY - rect.top;
+        if (mode === "sphere") {
+          const R = Math.min(W, H) * 0.33;
+          const sorted = [...sphereNodes].sort((a, b) => b.z - a.z);
+          for (const nd of sorted) {
+            const depth = (nd.z / R + 1) / 2;
+            const r = nodeRadius(nd.name) * (0.4 + depth * 0.7) + 14;
+            if (Math.hypot(nd.x - mx, nd.y - my) < r) {
+              document.getElementById("search-inp").value = nd.name;
+              focusSkill(nd.name);
+              return;
+            }
+          }
+        } else {
+          for (const nd of gNodes) {
+            if (Math.hypot(nd.x - mx, nd.y - my) < nd.r + 12) {
+              document.getElementById("search-inp").value = nd.name;
+              focusSkill(nd.name);
+              return;
+            }
+          }
+        }
+      }
       function showPanel(name) {
         const s = SK[name];
         if (!s) return;
