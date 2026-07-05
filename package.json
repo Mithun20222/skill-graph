@@ -1,7 +1,7 @@
 {
   "name": "skill-graph-backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "An interactive 3D visualization tool built to explore **graph databases using Neo4j** by modeling relationships between technical skills.",
   "main": "index.js",
   "scripts": {
     "start": "node src/index.js"
@@ -12,8 +12,16 @@
   "type": "commonjs",
   "dependencies": {
     "cors": "^2.8.6",
-    "dotenv": "^17.4.1",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "neo4j-driver": "^6.0.1"
-  }
+    "neo4j-driver": "^6.2.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mithun20222/skill-graph.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Mithun20222/skill-graph/issues"
+  },
+  "homepage": "https://github.com/Mithun20222/skill-graph#readme"
 }

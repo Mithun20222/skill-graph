@@ -73,6 +73,15 @@ app.get('/search', async (req, res) => {
   }
 })
 
+setInterval(async () => {
+  try {
+    await runQuery('RETURN 1')
+    console.log('Neo4j keep-alive ping sent')
+  } catch(e) {
+    console.error('Keep-alive failed:', e.message)
+  }
+}, 1000 * 60 * 60 * 24) // every 24 hours
+
 const PORT = process.env.PORT || 3000
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)
